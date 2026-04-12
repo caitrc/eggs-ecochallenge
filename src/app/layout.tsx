@@ -8,6 +8,8 @@ const navItems = [
   { href: '/challenges', label: 'Challenges', emoji: '🌿' },
   { href: '/leaderboard', label: 'Scores', emoji: '🏆' },
   { href: '/teams', label: 'Teams', emoji: '👥' },
+  { href: '/about', label: 'About', emoji: '🌍' },
+  { href: '/rules', label: 'Rules', emoji: '📋' },
   { href: '/me', label: 'Me', emoji: '⭐' },
 ]
 
