@@ -77,7 +77,16 @@ export default function ChallengesPage() {
 
     setLogCounts(prev => ({ ...prev, [challenge.id]: newCount }))
     showToast(`+${challenge.points} points! ${challenge.impact}`)
-  }
+if (typeof window !== 'undefined') {
+  const confetti = (await import('canvas-confetti')).default
+  confetti({
+    particleCount: 80,
+    spread: 70,
+    origin: { y: 0.7 },
+    colors: ['#639922', '#97C459', '#3B6D11', '#C0DD97', '#EAF3DE'],
+  })
+}
+  
 
   function showToast(msg: string) {
     setToast(msg)

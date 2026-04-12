@@ -50,6 +50,7 @@ export default function HomePage() {
   const { student, loading } = useStudent()
   const router = useRouter()
   const [stats, setStats] = useState({ students: 0, actions: 0, co2: 0 })
+const [displayed, setDisplayed] = useState({ students: 0, actions: 0, co2: 0 })
 
   useEffect(() => {
     async function loadStats() {
@@ -59,6 +60,23 @@ export default function HomePage() {
       ])
       setStats({ students: students || 0, actions: actions || 0, co2: Math.round((actions || 0) * 0.4) })
     }
+    // Animate counters
+const target = { students: students || 0, actions: actions || 0, co2: Math.round((actions || 0) * 0.4) }
+const duration = 1500
+const steps = 40
+const interval = duration / steps
+let step = 0
+const timer = setInterval(() => {
+  step++
+  const progress = step / steps
+  const ease = 1 - Math.pow(1 - progress, 3)
+  setDisplayed({
+    students: Math.round(target.students * ease),
+    actions: Math.round(target.actions * ease),
+    co2: Math.round(target.co2 * ease),
+  })
+  if (step >= steps) clearInterval(timer)
+}, interval)
     loadStats()
   }, [])
 
@@ -93,9 +111,9 @@ export default function HomePage() {
 
       <div className="grid grid-cols-3 gap-3 p-4">
         {[
-          ['Students', stats.students, '👩'],
-          ['Actions logged', stats.actions, '✅'],
-          [`${stats.co2}kg CO₂`, 'saved', '🌍'],
+          ['Students', displayed.students, '👩'],
+          ['Actions logged', displayed.actions, '✅'],
+          [`${displayed.co2}kg CO₂`, 'saved', '🌍'],
         ].map(([n, l, e]) => (
           <div key={n as string} className="bg-white rounded-xl p-3 text-center border border-gray-100">
             <div className="text-xl mb-0.5">{e}</div>
