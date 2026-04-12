@@ -18,7 +18,7 @@ export default function LeaderboardPage() {
     async function load() {
       const { data } = await supabase
         .from('students')
-        .select('id, nickname, tutor_class, total_points, teams(name)')
+        .select('id, nickname, tutor_class, total_points')
         .order('total_points', { ascending: false })
         .limit(50)
 
