@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState, useRef } from 'react'
 import { useStudent } from '@/lib/useStudent'
 import { supabase } from '@/lib/supabase'
@@ -28,6 +29,7 @@ type Comment = {
 
 export default function FeedPage() {
   const { student } = useStudent(false)
+
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -35,53 +37,86 @@ export default function FeedPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [uploadChallenge, setUploadChallenge] = useState(1)
   const [newComment, setNewComment] = useState<Record<string, string>>({})
+
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { loadFeed() }, [student])
+  useEffect(() => {
+    loadFeed()
+  }, [student])
 
   async function loadFeed() {
-    const { data } = await supabase
+    setLoading(true)
+
+    const { data, error } = await supabase
       .from('activity_feed')
       .select('*, students(nickname, tutor_class)')
       .eq('deleted', false)
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (!data) { setLoading(false); return }
+    if (error) {
+      console.error(error)
+      setLoading(false)
+      return
+    }
 
-    const ids = data.map((i: any) => i.id)
+    if (!data) {
+      setLoading(false)
+      return
+    }
 
-    const [{ data: likes }, { data: comments }] = await Promise.all([
-      supabase.from('feed_likes').select('feed_id, student_id').in('feed_id', ids),
-      supabase.from('feed_comments')
-        .select('id, feed_id, comment, created_at, students(nickname)')
-        .in('feed_id', ids)
-        .order('created_at'),
-    ])
+    const { data: likes } = await supabase
+      .from('feed_likes')
+      .select('feed_id, student_id')
 
-    setFeed(data.map((item: any) => ({
-      ...item,
-      nickname: item.students?.nickname,
-      tutor_class: item.students?.tutor_class,
-      likes: likes?.filter((l: any) => l.feed_id === item.id).length || 0,
-      liked: likes?.some((l: any) => l.feed_id === item.id && l.student_id === student?.id) || false,
-      comments: comments?.filter((c: any) => c.feed_id === item.id).map((c: any) => ({
-        id: c.id,
-        comment: c.comment,
-        nickname: c.students?.nickname,
-        created_at: c.created_at,
-      })) || [],
-      showComments: false,
-    })))
+    const { data: comments } = await supabase
+      .from('feed_comments')
+      .select('id, feed_id, comment, created_at, students(nickname)')
+      .order('created_at')
+
+    setFeed(
+      data.map((item: any) => {
+        const safeStudent = item.students ?? {}
+
+        return {
+          id: item.id,
+          student_id: item.student_id,
+          challenge_id: item.challenge_id,
+          photo_url: item.photo_url,
+          logged_date: item.logged_date,
+          created_at: item.created_at,
+
+          nickname: safeStudent.nickname ?? 'Student',
+          tutor_class: safeStudent.tutor_class ?? '',
+
+          likes:
+            likes?.filter(l => l.feed_id === item.id).length || 0,
+
+          liked:
+            likes?.some(
+              l => l.feed_id === item.id && l.student_id === student?.id
+            ) || false,
+
+          comments:
+            comments
+              ?.filter(c => c.feed_id === item.id)
+              .map(c => ({
+                id: c.id,
+                comment: c.comment,
+                nickname: c.students?.nickname ?? 'User',
+                created_at: c.created_at,
+              })) || [],
+
+          showComments: false,
+        }
+      })
+    )
 
     setLoading(false)
   }
 
   async function deletePost(item: FeedItem) {
-    if (!student) {
-      showToast('You must be logged in')
-      return
-    }
+    if (!student) return
 
     const { error } = await supabase
       .from('activity_feed')
@@ -99,44 +134,8 @@ export default function FeedPage() {
     showToast('Post deleted')
   }
 
-  async function uploadPhoto(file: File) {
-    if (!student) return
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Photo too large — please use one under 5MB')
-      return
-    }
-
-    setUploading(true)
-
-    const ext = file.name.split('.').pop()
-    const path = `${student.id}-${Date.now()}.${ext}`
-
-    const { error } = await supabase.storage.from('photos').upload(path, file)
-    if (error) {
-      showToast('Upload failed — try again')
-      setUploading(false)
-      return
-    }
-
-    const { data: urlData } = supabase.storage.from('photos').getPublicUrl(path)
-
-    await supabase.from('activity_feed').insert({
-      student_id: student.id,
-      challenge_id: uploadChallenge,
-      photo_url: urlData.publicUrl,
-      logged_date: new Date().toISOString().split('T')[0],
-    })
-
-    setShowUpload(false)
-    loadFeed()
-    setUploading(false)
-  }
-
   async function toggleLike(item: FeedItem) {
-    if (!student) {
-      showToast('Log in to like posts!')
-      return
-    }
+    if (!student) return
 
     if (item.liked) {
       await supabase
@@ -153,7 +152,11 @@ export default function FeedPage() {
     setFeed(prev =>
       prev.map(f =>
         f.id === item.id
-          ? { ...f, liked: !f.liked, likes: f.liked ? f.likes - 1 : f.likes + 1 }
+          ? {
+              ...f,
+              liked: !f.liked,
+              likes: f.liked ? f.likes - 1 : f.likes + 1,
+            }
           : f
       )
     )
@@ -188,29 +191,107 @@ export default function FeedPage() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  function getChallenge(id: number) {
-    return CHALLENGES.find(c => c.id === id)
-  }
-
   function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
+
     if (mins < 1) return 'just now'
     if (mins < 60) return `${mins}m ago`
+
     const hours = Math.floor(mins / 60)
     if (hours < 24) return `${hours}h ago`
+
     return `${Math.floor(hours / 24)}d ago`
   }
 
   return (
     <div>
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-green-700 text-white text-sm px-4 py-2 rounded-xl shadow-lg">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-green-700 text-white px-4 py-2 rounded-xl z-50">
           {toast}
         </div>
       )}
 
-      {/* EVERYTHING ELSE IN YOUR UI STAYS EXACTLY THE SAME */}
+      <div className="p-4">
+        <h1 className="font-semibold text-lg">Community Feed</h1>
+      </div>
+
+      {loading ? (
+        <div className="p-6 text-gray-400">Loading...</div>
+      ) : (
+        <div className="p-4 space-y-4">
+          {feed.map(item => {
+            const isOwn = item.student_id === student?.id
+
+            return (
+              <div key={item.id} className="border rounded-xl p-3 bg-white">
+
+                <div className="flex justify-between">
+                  <div>
+                    <p className="font-semibold">{item.nickname}</p>
+                    <p className="text-xs text-gray-500">{item.tutor_class}</p>
+                  </div>
+
+                  <p className="text-xs text-gray-400">
+                    {timeAgo(item.created_at)}
+                  </p>
+
+                  {isOwn && (
+                    <button
+                      onClick={() => deletePost(item)}
+                      className="text-red-400 text-xs"
+                    >
+                      delete
+                    </button>
+                  )}
+                </div>
+
+                {item.photo_url && (
+                  <img
+                    src={item.photo_url}
+                    className="rounded-lg mt-2 max-h-72 w-full object-cover"
+                  />
+                )}
+
+                <div className="flex gap-4 mt-2 text-sm">
+                  <button onClick={() => toggleLike(item)}>
+                    ❤️ {item.likes}
+                  </button>
+
+                  <button onClick={() => toggleComments(item.id)}>
+                    💬 {item.comments.length}
+                  </button>
+                </div>
+
+                {item.showComments && (
+                  <div className="mt-2 space-y-2">
+                    {item.comments.map(c => (
+                      <p key={c.id} className="text-xs text-gray-600">
+                        <b>{c.nickname}</b> {c.comment}
+                      </p>
+                    ))}
+
+                    <input
+                      className="border p-1 text-xs w-full"
+                      placeholder="comment..."
+                      value={newComment[item.id] || ''}
+                      onChange={e =>
+                        setNewComment(prev => ({
+                          ...prev,
+                          [item.id]: e.target.value,
+                        }))
+                      }
+                      onKeyDown={e =>
+                        e.key === 'Enter' && addComment(item)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
