@@ -4,11 +4,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const TUTOR_CLASSES = [
-  '9HEE','9VAN','9SMI','9BRO','9JON',
-  '10HEE','10VAN','10SMI','10BRO','10JON',
-  '11HEE','11VAN','11SMI','11BRO','11JON',
-  '12HEE','12VAN','12SMI','12BRO','12JON',
-  '13HEE','13VAN','13SMI','13BRO','13JON',
+  '11BRO','11BUR','11CHR','11DLE','11HIN','11HOL','11HOW','11JON','11JOS','11KHN','11MAN','11RIM','11SEE','11SHA','11SHR','11SMH','11SOH',
+'12BOW','12EVA','12GRA','12HAW','12HUE','12JAR','12KEW','12KHA','12LIU','12MEN','12PEA','12STC','12TAS','12THO','12WIL','12YOO','12ZHA',
+'13ALI','13BOA','13CLE','13FOR','13HAN','13HEE','13HIM','13HYM','13LAA','13LUP','13RYA','13SIM','13STO','13VAN','13WAT','13WEN','13WRI',
 ]
 
 export default function LoginPage() {
@@ -47,7 +45,7 @@ export default function LoginPage() {
 
     if (err) {
       setError('Error: ' + err.message)
-      
+
       setLoading(false)
       return
     }
