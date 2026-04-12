@@ -51,7 +51,8 @@ export default function LoginPage() {
     }
 
     localStorage.setItem('eggs_student', JSON.stringify(newStudent))
-    router.push('/')
+const onboarded = localStorage.getItem('eggs_onboarded')
+router.push(onboarded ? '/' : '/onboarding')
   }
 
   return (
