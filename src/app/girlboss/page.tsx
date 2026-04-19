@@ -77,7 +77,7 @@ export default function GirlBossPage() {
       </div>
 
       <div className="px-4 mb-6">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">TechStep roles we used</h2>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">TechStep roles used</h2>
         <div className="space-y-2">
           {roles.map(r => (
             <div key={r.title} className="bg-white rounded-xl border border-gray-100 p-3 flex gap-3 items-start">
