@@ -60,7 +60,7 @@ export default function OnboardingPage() {
   function next() {
     if (isLast) {
       localStorage.setItem('eggs_onboarded', 'true')
-      router.push('/login')
+      router.push('/')
     } else {
       setStep(s => s + 1)
     }
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
 
         {!isLast && (
           <button
-            onClick={() => { localStorage.setItem('eggs_onboarded', 'true'); router.push('/login') }}
+            onClick={() => { localStorage.setItem('eggs_onboarded', 'true'); router.push('/') }}
             className="w-full text-center text-xs text-gray-400 mt-3 py-2"
           >
             Skip
